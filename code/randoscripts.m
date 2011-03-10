@@ -3,12 +3,16 @@ oneshort = [];
 twoshort = [];
 i=1;
 while i < length(fly.STIM)
-    if fly.STIM(i) == 1 && fly.STIM(i+4) ~= 1
-        oneshort = [oneshort i];
+    if fly.STIM(i) == 1
+        if fly.STIM(i+4) ~= 1
+            oneshort = [oneshort i];
+        end
         i = i+5;
     end
-    if fly.STIM(i)==2 && fly.STIM(i+4) ~= 2
-        twoshort=[twoshort i];
+    if fly.STIM(i)==2
+        if fly.STIM(i+4) ~= 2
+            twoshort=[twoshort i];
+        end
         i=i+5;
     end
     i=i+1;
