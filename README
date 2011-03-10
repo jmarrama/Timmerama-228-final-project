@@ -1,1 +1,103 @@
-Hi! lol first commit
+
+Technical information about datasets provided for the fly behavior modeling project
+
+The datasets consist of sets of walking fly trajectories acquired using the setup and experimental
+protocol described in Ref. 1 figure 1) A-D and supp. figure 1.
+Briefly, the visual stimulus consists of repeatedly interleaved short epochs of coherent dot motion
+in a particular direction (which we will call ‘motion pulses’) and random dot motion in all directions
+(the ‘noise’ epoch) as shown in Fig. 1)c. In our datasets, the motion (or dark, see below) pulses lasted
+150ms or approximately 5 frames.
+
+You will receive datasets corresponding to 3 different types of experiments:
+2 motion pulse presentation experiments - one where sparse dark dots where presented over a bright
+background (as described on the right side of Fig. 1D and in supp. video 1) (the ‘decrement’ condition);
+another where bright dots were presented over a dark background (the ‘increment’ condition). In a
+3rd experiment, the flies were presented with complete darkness (‘dark pulse’) when the stimulus was
+applied, and with a medium light level between stimulus applications (replacing the ‘noise epoch’).
+
+The trajectories have been divided according to the type of flies and the type of experiment in which
+they were acquired. The fly and experiment type are indicated in the file name of the corresponding
+dataset as follows:
+
+<FLY_TYPE>_<EXP>_#.mat = A matlab data file containing a structure that consists of behavioral data
+(see details below); where # is a number.
+<FLY_TYPE> can currently have 1 of 2 values:
+control = normal flies, presenting wild-type behavior.
+L2 = flies where a neuron called L2, whose functional importance for motion vision has been
+demonstrated, has been inhibited.
+Additional datasets will be provided at a slightly later time point to allow for a more comprehensive
+performance measurement, but only the control dataset is required for parameter learning purposes.
+<EXP> can have 1 of 3 values: ‘inc’ = motion pulse stimulus, increment condition. ‘dec’ = motion pulse
+stimulus, decrement condition. ‘dark’ = dark pulse stimulus.
+
+i.e., you will be getting a total of 6 structures. Within each structure, there are 11 fields containing
+information of potential interest:
+
+pos_x = fly position along the x axis
+pos_y = fly position along the y axis
+pos_o = fly orientation
+VT = a 1st component of the fly translational velocity, in the orientation of the fly body axis (velocity of
+moving forward)
+VS = a 2nd component of the fly translational velocity, in the orientation normal to the fly body axis
+(velocity of moving sideways. Flies do that quite often, in particular when/before/after they are turning).
+VR = fly rotational velocity
+Figure 2)c describes velocity histograms as well as shows how the velocities are defined. VS is not
+
+shown, but is orthogonal to VT.
+STIM = when was a stimulus applied. Samples have 1 of 3 possible values. 0 = random, incoherent, dot
+motion for motion stimulus (noise epoch), medium light presentation for dark stimulus; 1 = coherent
+random dot motion in one direction; 2 = random dot motion in the opposite direction (for dark stimulus,
+1 and 2 are equivalent so you can pool the data from the 2 pulse presentations together).
+stim_RT = an array consisting of 2 columns. Column i (where i is either 1 or 2) – the number of frames
+since the first frame of the last stimulus pulse of type i that was presented. The value of stim_RT at the
+first frame of a stimulus pulse is 0 and at the last frame, 4. The maximal value in stim_RT is 180 but it
+is not always reached (you can either ignore these frames or assume that the new stimulus pulse was
+already on – i.e. these frames are equivalent to frame 0).
+
+Due to the specifics of the experimental setup, the trajectories can start and end at arbitrary time points
+with respect to the stimulus presentation (trajectories are cut when flies step outside the ‘allowed’
+region of the tube where the surface is approximately flat and they can properly see the stimulus, when
+2 flies get too close to each other so that tracking fails and when flies jump). The above described fields
+are all single column vectors (with the exception of stim_RT which is a 2-column matrix) consisting of
+information from multiple trajectories. In order to separate the information from different trajectories,
+you will use the following -
+
+indices = a cell array. Each entry corresponds to a single fly trajectory and consists of indices into each
+of the 8 fields described above. For example, pos_x(indices{3}) = the positions at each frame of the 3rd
+trajectory.
+
+Additional information (these variables should not be a part of the model, but are given to you for
+complete disclosure, so that you can check whether omitting this information harms performance in any
+way):
+
+tubes = each trajectory belongs to a fly that walked in one of 7 possible tubes. This is the number of the
+tube that the fly walked in. This number should not affect the fly behavior and needs not be a part of the
+model you design.
+day_times = different experiments were conducted at different times of the day. This field can have 3
+different values: ‘a’ = morning; ‘p’ = after noon; ‘n’ = night. As with the tube number, the time of day in
+which the experiment was performed should not affect the fly behavior and needs not be a part of the
+model you design.
+
+Domain knowledge:
+• The direction of motion with respect to the orientation of the fly strongly affects the fly’s response
+to the motion.
+• The flies response to a stimulus may last longer than the duration of the presentation of the
+stimulus. It is possible that the flies respond to the initiation of the stimulus as well as to its ending;
+in addition to responding to the stimulus for the duration of its presentation.
+• It is known that the rotational and translational velocities of flies are affected by the above
+described stimuli. According to Ref. 1 these velocities are independently controlled. Can you support
+
+/ refute this claim based on the data you are provided with?
+In designing the experimental setup care was taken to make sure that the position of flies within
+tubes does not affect their behavior (i.e., the fly velocities are assumed to be independent of their
+position). This may not be an accurate assumption, but feel free to use it and/or experiment with
+removing it.
+
+•
+
+References
+
+Information about the experimental setup and expected behavioral responses can be found in:
+A. Katsov and T.R. Clandinin, Motion processing streams in Drosophila are behaviorally
+specialized, Neuron 59 (2008), pp. 322335. link to the paper in Science Direct
+See, in particular, figure 1 panels A-D and figure 2 panels C-I.
