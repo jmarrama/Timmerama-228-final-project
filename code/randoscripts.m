@@ -64,3 +64,15 @@ for i=1:length(fly.indices)
        break;
    end
 end
+
+nanidx = [];
+for i=1:length(fly.indices)
+    if any(isnan(fly.VR(fly.indices{i})))
+        nanidx = [nanidx i];
+    end
+end
+
+trajLens = zeros(size(fly.indices));
+for i=1:length(trajLens)
+    trajLens(i) = length(fly.indices{i});
+end
