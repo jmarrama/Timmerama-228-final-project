@@ -101,49 +101,37 @@ end
 
 %% Get (average) log-likelihoods of validation set:
 disp('Calculating average log-likelihoods of validation set');
-valAvgLL = zeros(length(valIdx),1);
-% infcount = 0;
-for ii=1:length(valIdx)
-    i = valIdx(ii);
-    ll = 0;
-    if mod(ii,1000)==0
-        disp(['On iteration ' num2str(ii) ' of ' num2str(length(valIdx))]);
-    end
-    j = fly.indices{i}(6:end-1);
-    k = fly.indices{i}(7:end);
-    mu_VT = [fly.VT(j), fly.stim_RT(j,1), fly.stim_RT(j,2), ...
-        ones(length(j),1)] * params.VT.theta;
-%     mu_VT = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), fly.VT(j), fly.VS(j), ...
-%         fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2), ones(length(j),1)] * ...
-%         params.VT.theta;
-    mu_VS = [fly.VS(j), fly.stim_RT(j,1), fly.stim_RT(j,2), ...
-        ones(length(j),1)] * params.VS.theta;
-%     mu_VS = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), fly.VT(j), fly.VS(j), ...
-%         fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2), ones(length(j),1)] * ...
-%         params.VS.theta;
-    mu_VR = [fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2), ...
-        ones(length(j),1)] * params.VR.theta;
-%     mu_VR = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), fly.VT(j), fly.VS(j), ...
-%         fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2), ones(length(j),1)] * ...
-%         params.VR.theta;
-    mu_pos_o = [fly.pos_o(j), fly.stim_RT(j,1), fly.stim_RT(j,2), ...
-        ones(length(j),1)] * params.VT.theta;
-%     mu_pos_o = [fly.pos_o(j), fly.VT(j), fly.VS(j), fly.VR(j), ...
-%         fly.stim_RT(j,1), fly.stim_RT(j,2),ones(length(j),1)] * params.pos_o.theta;
-    llVT = log(normpdf(fly.VT(k), mu_VT, params.VT.sigma));
-    llVS = log(normpdf(fly.VS(k), mu_VS, params.VS.sigma));
-    llVR = log(normpdf(fly.VR(k), mu_VR, params.VR.sigma));
-    multmax = 2*(fly.pos_o(k) > 1)-1;
-    llpos_o = log(normpdf(fly.pos_o(k), mu_pos_o, params.pos_o.sigma));
-    
-    valAvgLL(ii) = mean(llVT + llVS + llVR + llpos_o);
-    
-%     if valAvgLL(ii) == -Inf
-%         infcount = infcount + 1;
-%         if infcount == 1
-%             break;
-%         end
-%     end
-    
+valAvgLL = GetAvgLLs(fly, params, valIdx);
+
+%% LL cut-off with L2...
+disp('Loading L2 data set');
+load ../data/L2_dec_all.mat
+flyMutant = L2_dec_strct;
+clear L2_dec_strct;
+disp('Splitting L2 into training, validation, and test data...');
+[mutantTrainIdx, mutantValIdx, mutantTestIdx] = splitData(flyMutant);
+
+mutantAvgLL = GetAvgLLs(flyMutant, params, mutantValIdx);
+
+llcuts = -10:0.1:10;
+f1s = zeros(1,length(llcuts));
+for i=1:length(llcuts)
+    f1s(i) = EvaluateCutoff(valAvgLL, mutantAvgLL, llcuts(i));
 end
+plot(llcuts,f1s);
+title('F1 as a function of Average Log Likelihood Cut-offs');
+xlabel('Avg LL Cut-off');
+ylabel('F1 score');
+
+llcut = llcuts(f1s == max(f1s));
+
+%% Finally, testing!!
+disp('Testing the Model');
+testWildAvgLL = GetAvgLLs(fly, params, testIdx);
+testMutantAvgLL = GetAvgLLs(flyMutant, params, mutantTestIdx);
+[f1 precision recall] = EvaluateCutoff(testWildAvgLL, testMutantAvgLL, llcut);
+
+
+
+
 
