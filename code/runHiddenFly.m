@@ -1,9 +1,13 @@
-%% runFly.m Runs the Whole Thang
+%% runHiddenFly.m Runs the Whole Thang
 
 % 0 = dark
 % 1 = dec
 % 2 = inc
 expType = 2;
+
+% number of hidden states (i.e. cardinality of hidden variable)
+numStates = 20;
+maxStim = 16;
 
 % first prototype with control, decrement
 if expType==0
@@ -41,82 +45,64 @@ numFlies = length(fly.indices);
 fly.stim_RT = fly.stim_RT + 1;
 for i=1:2
     tmpVec = fly.stim_RT(:,i);
-    tmpVec(tmpVec > 15) = 0;
+    tmpVec(tmpVec > maxStim) = maxStim;
     fly.stim_RT(:,i) = tmpVec;
 end
 
 % Fit MLE Linear Gaussian Parameters
-disp('Learning the Parameters...');
+disp('Performing EM to Learn Parameters');
 numExamples = 0;
 for ii=1:length(trainIdx)
     i = trainIdx(ii);
    numExamples = numExamples + length(fly.indices{i}) - 6; 
 end
-W = ones(numExamples, 1);
-disp('Learning VT Parameters');
-X = zeros(numExamples, 1);
-%U = zeros(numExamples, 7);
-U = zeros(numExamples, 3);
-idx = 1;
-for ii=1:length(trainIdx)
-    i = trainIdx(ii);
-    numSamp = length(fly.indices{i}) - 6;
-    X(idx:idx+numSamp-1) = fly.VT(fly.indices{i}(7:end));
-    j = fly.indices{i}(6:end-1);
-    U(idx:idx+numSamp-1,:) = [fly.VT(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
-%     U(idx:idx+numSamp-1,:) = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), ...
-%         fly.VT(j), fly.VS(j), fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
-    idx = idx + numSamp;
+params.VT.mu = rand(numStates,1)-0.5;
+params.VS.mu = rand(numStates,1)-0.5;
+params.VR.mu = rand(numStates,1)-0.5;
+params.PO.mu = rand(numStates,1)-0.5;
+params.VT.sigma = 0.5*(1+rand(numStates,1));
+params.VS.sigma = 0.5*(1+rand(numStates,1));
+params.VR.sigma = 0.5*rand(numStates,1);
+params.PO.sigma = 0.5*rand(numStates,1);
+for i=1:maxStim
+    for j=1:maxStim
+        params.stimRT{i,j} = rand(numStates);
+        params.stimRT{i,j} = params.stimRT{i,j} ./ ...
+            repmat(sum(params.stimRT{i,j},2),1,numStates);
+    end 
 end
-[params.VT.theta, params.VT.sigma] = FitLinearGaussianParameters(X, U, W);
-disp('Learning VS Parameters');
-X = zeros(numExamples, 1);
-U = zeros(numExamples, 3);
-% U = zeros(numExamples, 7);
-idx = 1;
-for ii=1:length(trainIdx)
-    i = trainIdx(ii);
-    numSamp = length(fly.indices{i}) - 6;
-    X(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(7:end));
-    j = fly.indices{i}(6:end-1);
-    U(idx:idx+numSamp-1,:) = [fly.VS(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
-%     U(idx:idx+numSamp-1,:) = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), ...
-%         fly.VT(j), fly.VS(j), fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
-    idx = idx + numSamp;
+params.pi = rand(1,numStates);
+params.pi = params.pi ./ sum(params.pi);
+for iter=1:100
+    disp(['Iteration ' num2str(iter) ' of 100...']);
+    W = zeros(numExamples, numStates);
+    idx = 1;
+    
+    disp('E-Step...');
+    for ii=1:length(trainIdx)
+        i = trainIdx(ii);
+        trajLen = length(fly.indices{i});
+        numSamp = length(fly.indices{i}) - 6;
+        Xvt(idx:idx+numSamp-1) = fly.VT(fly.indices{i}(7:end));
+        Xvs(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(7:end));
+        Xvr(idx:idx+numSamp-1) = fly.VR(fly.indices{i}(7:end));
+        Xpo(idx:idx+numSamp-1) = fly.pos_o(fly.indices{i}(7:end));
+        W(idx:idx+numSamp-1,:) = GetSimpleESS(fly, params, i, 7, trajLen);
+        idx = idx + numSamp;
+    end
+    
+    disp('M-Step...');
+    for k=1:numStates
+        [params.VT.mu(k) params.VT.sigma(k)] = ...
+            FitGaussianParameters(Xvt, W(:,k));
+        [params.VS.mu(k) params.VS.sigma(k)] = ...
+            FitGaussianParameters(Xvs, W(:,k));
+        [params.VR.mu(k) params.VR.sigma(k)] = ...
+            FitGaussianParameters(Xvr, W(:,k));
+        [params.PO.mu(k) params.PO.sigma(k)] = ...
+            FitGaussianParameters(Xpo, W(:,k));
+    end
 end
-[params.VS.theta, params.VS.sigma] = FitLinearGaussianParameters(X, U, W);
-disp('Learning VR Parameters');
-X = zeros(numExamples, 1);
-U = zeros(numExamples, 3);
-% U = zeros(numExamples, 7);
-idx = 1;
-for ii=1:length(trainIdx)
-    i = trainIdx(ii);
-    numSamp = length(fly.indices{i}) - 6;
-    X(idx:idx+numSamp-1) = fly.VR(fly.indices{i}(7:end));
-    j = fly.indices{i}(6:end-1);
-    U(idx:idx+numSamp-1,:) = [fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
-%     U(idx:idx+numSamp-1,:) = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), ...
-%         fly.VT(j), fly.VS(j), fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
-    idx = idx + numSamp;
-end
-[params.VR.theta, params.VR.sigma] = FitLinearGaussianParameters(X, U, W);
-disp('Learning pos_o Parameters');
-X = zeros(numExamples, 1);
-% U = zeros(numExamples, 6);
-U = zeros(numExamples, 3);
-idx = 1;
-for ii=1:length(trainIdx)
-    i = trainIdx(ii);
-    numSamp = length(fly.indices{i}) - 6;
-    X(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(7:end));
-    j = fly.indices{i}(6:end-1);
-    U(idx:idx+numSamp-1,:) = [fly.pos_o(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
-%     U(idx:idx+numSamp-1,:) = [fly.pos_o(j), fly.VT(j), fly.VS(j), ...
-%         fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
-    idx = idx + numSamp;
-end
-[params.pos_o.theta, params.pos_o.sigma] = FitLinearGaussianParameters(X, U, W);
 
 
 %% Get (average) log-likelihoods of validation set:
