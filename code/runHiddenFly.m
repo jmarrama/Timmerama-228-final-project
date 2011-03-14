@@ -133,7 +133,6 @@ for iter=1:numEMIters
     end
 end
 
-hello = 'hello';
 %% Get (average) log-likelihoods of validation set:
 disp('Calculating average log-likelihoods of validation set');
 valAvgLL = GetHiddenAvgLLs(fly, params, valIdx, trajStart);
