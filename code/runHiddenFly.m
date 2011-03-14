@@ -6,8 +6,8 @@
 expType = 2;
 
 % number of hidden states (i.e. cardinality of hidden variable)
-numStates = 20;
-maxStim = 16;
+numStates = 10;
+maxStim = 12;
 % where to start on each trajectory (first few measurements are bad)
 trajStart = 7;
 numEMIters = 1;
@@ -160,12 +160,28 @@ elseif expType==2
 else
     disp('Invalid experiment type specified');
 end
+
+% remove data that we are not going to use
+% NOTE: may want to include pos_x and pos_y later!
+disp('Removing unnecesssary L2 data...');
+flyMutant = rmfield(flyMutant, {'tubes', 'day_times', 'pos_x', 'pos_y'});
+
+% change data so that it is in accordance with our model assumptions:
+disp('Changing L2 data according to our model assumptions...');
+numMutantFlies = length(flyMutant.indices);
+flyMutant.stim_RT = flyMutant.stim_RT + 1;
+for i=1:2
+    tmpVec = flyMutant.stim_RT(:,i);
+    tmpVec(tmpVec > maxStim) = maxStim;
+    flyMutant.stim_RT(:,i) = tmpVec;
+end
+
 disp('Splitting L2 into training, validation, and test data...');
 [mutantTrainIdx, mutantValIdx, mutantTestIdx] = splitData(flyMutant);
 
 mutantAvgLL = GetHiddenAvgLLs(flyMutant, params, mutantValIdx, trajStart);
 
-llcuts = -10:0.1:10;
+llcuts = -20:0.1:10;
 f1s = zeros(1,length(llcuts));
 for i=1:length(llcuts)
     f1s(i) = EvaluateCutoff(valAvgLL, mutantAvgLL, llcuts(i));

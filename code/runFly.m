@@ -4,6 +4,8 @@
 % 1 = dec
 % 2 = inc
 expType = 2;
+maxStim = 15;
+trajStart = 7;
 
 % first prototype with control, decrement
 if expType==0
@@ -41,7 +43,7 @@ numFlies = length(fly.indices);
 fly.stim_RT = fly.stim_RT + 1;
 for i=1:2
     tmpVec = fly.stim_RT(:,i);
-    tmpVec(tmpVec > 15) = 0;
+    tmpVec(tmpVec > maxStim) = 0;
     fly.stim_RT(:,i) = tmpVec;
 end
 
@@ -50,7 +52,7 @@ disp('Learning the Parameters...');
 numExamples = 0;
 for ii=1:length(trainIdx)
     i = trainIdx(ii);
-   numExamples = numExamples + length(fly.indices{i}) - 6; 
+   numExamples = numExamples + length(fly.indices{i}) - trajStart + 1; 
 end
 W = ones(numExamples, 1);
 disp('Learning VT Parameters');
@@ -60,9 +62,9 @@ U = zeros(numExamples, 3);
 idx = 1;
 for ii=1:length(trainIdx)
     i = trainIdx(ii);
-    numSamp = length(fly.indices{i}) - 6;
-    X(idx:idx+numSamp-1) = fly.VT(fly.indices{i}(7:end));
-    j = fly.indices{i}(6:end-1);
+    numSamp = length(fly.indices{i}) - trajStart + 1;
+    X(idx:idx+numSamp-1) = fly.VT(fly.indices{i}(trajStart:end));
+    j = fly.indices{i}(trajStart -1:end-1);
     U(idx:idx+numSamp-1,:) = [fly.VT(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
 %     U(idx:idx+numSamp-1,:) = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), ...
 %         fly.VT(j), fly.VS(j), fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
@@ -76,9 +78,9 @@ U = zeros(numExamples, 3);
 idx = 1;
 for ii=1:length(trainIdx)
     i = trainIdx(ii);
-    numSamp = length(fly.indices{i}) - 6;
-    X(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(7:end));
-    j = fly.indices{i}(6:end-1);
+    numSamp = length(fly.indices{i}) - trajStart + 1;
+    X(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(trajStart:end));
+    j = fly.indices{i}(trajStart - 1:end-1);
     U(idx:idx+numSamp-1,:) = [fly.VS(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
 %     U(idx:idx+numSamp-1,:) = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), ...
 %         fly.VT(j), fly.VS(j), fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
@@ -92,9 +94,9 @@ U = zeros(numExamples, 3);
 idx = 1;
 for ii=1:length(trainIdx)
     i = trainIdx(ii);
-    numSamp = length(fly.indices{i}) - 6;
-    X(idx:idx+numSamp-1) = fly.VR(fly.indices{i}(7:end));
-    j = fly.indices{i}(6:end-1);
+    numSamp = length(fly.indices{i}) - trajStart + 1;
+    X(idx:idx+numSamp-1) = fly.VR(fly.indices{i}(trajStart:end));
+    j = fly.indices{i}(trajStart - 1:end-1);
     U(idx:idx+numSamp-1,:) = [fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
 %     U(idx:idx+numSamp-1,:) = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), ...
 %         fly.VT(j), fly.VS(j), fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
@@ -108,9 +110,9 @@ U = zeros(numExamples, 3);
 idx = 1;
 for ii=1:length(trainIdx)
     i = trainIdx(ii);
-    numSamp = length(fly.indices{i}) - 6;
-    X(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(7:end));
-    j = fly.indices{i}(6:end-1);
+    numSamp = length(fly.indices{i}) - trajStart + 1;
+    X(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(trajStart:end));
+    j = fly.indices{i}(trajStart - 1:end-1);
     U(idx:idx+numSamp-1,:) = [fly.pos_o(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
 %     U(idx:idx+numSamp-1,:) = [fly.pos_o(j), fly.VT(j), fly.VS(j), ...
 %         fly.VR(j), fly.stim_RT(j,1), fly.stim_RT(j,2)];
@@ -121,7 +123,7 @@ end
 
 %% Get (average) log-likelihoods of validation set:
 disp('Calculating average log-likelihoods of validation set');
-valAvgLL = GetAvgLLs(fly, params, valIdx);
+valAvgLL = GetAvgLLs(fly, params, valIdx, trajStart);
 
 %% LL cut-off with L2...
 if expType==0
@@ -142,10 +144,24 @@ elseif expType==2
 else
     disp('Invalid experiment type specified');
 end
+
+disp('Removing unnecesssary L2 data...');
+flyMutant = rmfield(flyMutant, {'tubes', 'day_times', 'pos_x', 'pos_y'});
+
+% change data so that it is in accordance with our model assumptions:
+disp('Changing L2 data according to our model assumptions...');
+numMutantFlies = length(flyMutant.indices);
+flyMutant.stim_RT = flyMutant.stim_RT + 1;
+for i=1:2
+    tmpVec = flyMutant.stim_RT(:,i);
+    tmpVec(tmpVec > maxStim) = 0;
+    flyMutant.stim_RT(:,i) = tmpVec;
+end
+
 disp('Splitting L2 into training, validation, and test data...');
 [mutantTrainIdx, mutantValIdx, mutantTestIdx] = splitData(flyMutant);
 
-mutantAvgLL = GetAvgLLs(flyMutant, params, mutantValIdx);
+mutantAvgLL = GetAvgLLs(flyMutant, params, mutantValIdx, trajStart);
 
 llcuts = -10:0.1:10;
 f1s = zeros(1,length(llcuts));
@@ -161,8 +177,8 @@ llcut = llcuts(f1s == max(f1s));
 
 %% Finally, testing!!
 disp('Testing the Model');
-testWildAvgLL = GetAvgLLs(fly, params, testIdx);
-testMutantAvgLL = GetAvgLLs(flyMutant, params, mutantTestIdx);
+testWildAvgLL = GetAvgLLs(fly, params, testIdx, trajStart);
+testMutantAvgLL = GetAvgLLs(flyMutant, params, mutantTestIdx, trajStart);
 [f1 precision recall] = EvaluateCutoff(testWildAvgLL, testMutantAvgLL, llcut);
 
 
