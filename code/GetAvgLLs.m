@@ -1,5 +1,5 @@
 %% Returns average log-likelihoods for given fly trajectories
-function avgLL = GetAvgLLs(fly, params, idx)
+function avgLL = GetAvgLLs(fly, params, idx, trajStart)
 
 avgLL = zeros(length(idx),1);
 % infcount = 0;
@@ -8,8 +8,8 @@ for ii=1:length(idx)
     if mod(ii,1000)==0
         disp(['On iteration ' num2str(ii) ' of ' num2str(length(idx))]);
     end
-    j = fly.indices{i}(6:end-1);
-    k = fly.indices{i}(7:end);
+    j = fly.indices{i}(trajStart-1:end-1);
+    k = fly.indices{i}(trajStart:end);
     mu_VT = [fly.VT(j), fly.stim_RT(j,1), fly.stim_RT(j,2), ...
         ones(length(j),1)] * params.VT.theta;
 %     mu_VT = [cos(fly.pos_o(j)), sin(fly.pos_o(j)), fly.VT(j), fly.VS(j), ...

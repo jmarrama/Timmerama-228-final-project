@@ -8,6 +8,9 @@ expType = 2;
 % number of hidden states (i.e. cardinality of hidden variable)
 numStates = 20;
 maxStim = 16;
+% where to start on each trajectory (first few measurements are bad)
+trajStart = 7;
+numEMIters = 1;
 
 % first prototype with control, decrement
 if expType==0
@@ -73,41 +76,67 @@ for i=1:maxStim
 end
 params.pi = rand(1,numStates);
 params.pi = params.pi ./ sum(params.pi);
-for iter=1:100
-    disp(['Iteration ' num2str(iter) ' of 100...']);
+for iter=1:numEMIters
+    disp(['Iteration ' num2str(iter) ' of ' num2str(numEMIters) '...']);
     W = zeros(numExamples, numStates);
     idx = 1;
     
     disp('E-Step...');
+    exp_num_trans = cell(maxStim, maxStim);
+    for i=1:maxStim
+        for j=1:maxStim
+            exp_num_trans{i,j} = zeros(numStates, numStates);
+        end
+    end
+    exp_num_visits1 = zeros(1, numStates);
     for ii=1:length(trainIdx)
+        if mod(ii,1000)==0
+            disp(['Trajectory ' num2str(ii) ' of ' ...
+                num2str(length(trainIdx)) '...']);
+        end
         i = trainIdx(ii);
         trajLen = length(fly.indices{i});
-        numSamp = length(fly.indices{i}) - 6;
-        Xvt(idx:idx+numSamp-1) = fly.VT(fly.indices{i}(7:end));
-        Xvs(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(7:end));
-        Xvr(idx:idx+numSamp-1) = fly.VR(fly.indices{i}(7:end));
-        Xpo(idx:idx+numSamp-1) = fly.pos_o(fly.indices{i}(7:end));
-        W(idx:idx+numSamp-1,:) = GetSimpleESS(fly, params, i, 7, trajLen);
+        numSamp = length(fly.indices{i}) - trajStart + 1;
+        Xvt(idx:idx+numSamp-1) = fly.VT(fly.indices{i}(trajStart:end));
+        Xvs(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(trajStart:end));
+        Xvr(idx:idx+numSamp-1) = fly.VR(fly.indices{i}(trajStart:end));
+        Xpo(idx:idx+numSamp-1) = fly.pos_o(fly.indices{i}(trajStart:end));
+        [W(idx:idx+numSamp-1,:) xi_summed] = ...
+            GetSimpleESS(fly, params, i, numStates, trajStart, trajLen, maxStim);
+        for i=1:maxStim
+            for j=1:maxStim
+                exp_num_trans{i,j} = exp_num_trans{i,j} + xi_summed{i,j};
+            end
+        end
+        exp_num_visits1 = exp_num_visits1 + W(idx,:);
         idx = idx + numSamp;
     end
     
     disp('M-Step...');
     for k=1:numStates
+        disp(['Updating parameters of hidden state ' num2str(k) ...
+            ' of ' num2str(numStates)]);
         [params.VT.mu(k) params.VT.sigma(k)] = ...
-            FitGaussianParameters(Xvt, W(:,k));
+            FitGaussianParameters(Xvt', W(:,k));
         [params.VS.mu(k) params.VS.sigma(k)] = ...
-            FitGaussianParameters(Xvs, W(:,k));
+            FitGaussianParameters(Xvs', W(:,k));
         [params.VR.mu(k) params.VR.sigma(k)] = ...
-            FitGaussianParameters(Xvr, W(:,k));
+            FitGaussianParameters(Xvr', W(:,k));
         [params.PO.mu(k) params.PO.sigma(k)] = ...
-            FitGaussianParameters(Xpo, W(:,k));
+            FitGaussianParameters(Xpo', W(:,k));
+        params.pi = normaliseC(exp_num_visits1);
+        for i=1:maxStim
+            for j=1:maxStim
+                params.stimRT{i,j} = mk_stochastic(exp_num_trans{i,j});
+            end
+        end
     end
 end
 
-
+hello = 'hello';
 %% Get (average) log-likelihoods of validation set:
 disp('Calculating average log-likelihoods of validation set');
-valAvgLL = GetAvgLLs(fly, params, valIdx);
+valAvgLL = GetHiddenAvgLLs(fly, params, valIdx, trajStart);
 
 %% LL cut-off with L2...
 if expType==0
@@ -131,7 +160,7 @@ end
 disp('Splitting L2 into training, validation, and test data...');
 [mutantTrainIdx, mutantValIdx, mutantTestIdx] = splitData(flyMutant);
 
-mutantAvgLL = GetAvgLLs(flyMutant, params, mutantValIdx);
+mutantAvgLL = GetHiddenAvgLLs(flyMutant, params, mutantValIdx, trajStart);
 
 llcuts = -10:0.1:10;
 f1s = zeros(1,length(llcuts));
@@ -147,8 +176,8 @@ llcut = llcuts(f1s == max(f1s));
 
 %% Finally, testing!!
 disp('Testing the Model');
-testWildAvgLL = GetAvgLLs(fly, params, testIdx);
-testMutantAvgLL = GetAvgLLs(flyMutant, params, mutantTestIdx);
+testWildAvgLL = GetHiddenAvgLLs(fly, params, testIdx, trajStart);
+testMutantAvgLL = GetHiddenAvgLLs(flyMutant, params, mutantTestIdx, trajStart);
 [f1 precision recall] = EvaluateCutoff(testWildAvgLL, testMutantAvgLL, llcut);
 
 
