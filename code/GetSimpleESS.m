@@ -16,16 +16,12 @@ function [gamma xi_summed loglik] = ...
 %       gamma(t,k) = prob of kth value at time step t
            
 
-len = last-start+1;
-% ess.VT = zeros(len, K);
-% ess.VS = zeros(len, K);
-% ess.VR = zeros(len, K);
-% ess.PO = zeros(len, K);
+T = last-start+1;
 
-alpha = zeros(len, K);
-beta = zeros(len, K);
-gamma = zeros(len, K);
-scale = zeros(len,1);
+alpha = zeros(T, K);
+beta = zeros(T, K);
+gamma = zeros(T, K);
+scale = zeros(T,1);
 xi_summed = cell(maxStim,maxStim);
 for i=1:maxStim
     for j=1:maxStim
@@ -34,11 +30,11 @@ for i=1:maxStim
 end
 
 
-VT = fly.VT(fly.indices{idx}(start-1:last));
-VS = fly.VS(fly.indices{idx}(start-1:last));
-VR = fly.VR(fly.indices{idx}(start-1:last));
-PO = fly.pos_o(fly.indices{idx}(start-1:last));
-stim_RT = fly.stim_RT(fly.indices{idx}(start-1:last),:);
+VT = fly.VT(fly.indices{idx}(start:last));
+VS = fly.VS(fly.indices{idx}(start:last));
+VR = fly.VR(fly.indices{idx}(start:last));
+PO = fly.pos_o(fly.indices{idx}(start:last));
+stim_RT = fly.stim_RT(fly.indices{idx}(start:last),:);
 % TxK matrix, (t,k) is likelihood of t-th observation set given hidden
 % variable value is k
 obslik = GetObsLik(params, VT, VS, VR, PO);
@@ -46,7 +42,7 @@ obslik = GetObsLik(params, VT, VS, VR, PO);
 alpha(1,:) = params.pi .* obslik(1,:);
 scale(1) = sum(alpha(1,:));
 alpha(1,:) = alpha(1,:) / scale(1);
-for t=2:len
+for t=2:T
     alpha(t,:) = alpha(t-1,:)*params.stimRT{stim_RT(t,1),stim_RT(t,2)} ...
         .* obslik(t,:);
     [alpha(t,:) scale(t)] = normaliseC(alpha(t,:));
@@ -55,10 +51,10 @@ for t=2:len
 end
 loglik = sum(log(scale));
 % Backward Equations
-beta(len,:) = 1;
-gamma(len,:) = alpha(len,:) .* beta(len,:);
-gamma(len,:) = gamma(len,:) ./ sum(gamma(len,:));
-for t=len-1:-1:1
+beta(T,:) = 1;
+gamma(T,:) = alpha(T,:) .* beta(T,:);
+gamma(T,:) = gamma(T,:) ./ sum(gamma(T,:));
+for t=T-1:-1:1
     beta(t,:) = normaliseC(beta(t+1,:) .* obslik(t+1,:) ...
         * params.stimRT{stim_RT(t+1,1), stim_RT(t+1,2)}');
 %     beta(t,:) = beta(t+1,:) .* obslik(t+1,:) ...

@@ -4,7 +4,7 @@
 % 1 = dec
 % 2 = inc
 expType = 2;
-maxStim = 15;
+maxStim = 1;
 trajStart = 7;
 
 % first prototype with control, decrement

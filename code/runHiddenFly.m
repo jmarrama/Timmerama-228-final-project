@@ -3,14 +3,18 @@
 % 0 = dark
 % 1 = dec
 % 2 = inc
-expType = 2;
+expType = 1;
 
 % number of hidden states (i.e. cardinality of hidden variable)
 numStates = 10;
 maxStim = 12;
 % where to start on each trajectory (first few measurements are bad)
 trajStart = 7;
-numEMIters = 1;
+numEMIters = 10;
+% exact (viterbi/fwd-bwd) or approximate (particle filtering) inference
+exact = 0;
+% number of particles for approximate inference (must be set if exact=0)
+numParticles = 1000;
 
 % first prototype with control, decrement
 if expType==0
@@ -101,14 +105,22 @@ for iter=1:numEMIters
         Xvs(idx:idx+numSamp-1) = fly.VS(fly.indices{i}(trajStart:end));
         Xvr(idx:idx+numSamp-1) = fly.VR(fly.indices{i}(trajStart:end));
         Xpo(idx:idx+numSamp-1) = fly.pos_o(fly.indices{i}(trajStart:end));
-        [W(idx:idx+numSamp-1,:) xi_summed] = ...
-            GetSimpleESS(fly, params, i, numStates, trajStart, trajLen, maxStim);
+        if exact
+            [W(idx:idx+numSamp-1,:) ess_trans] = ...
+                GetSimpleESS(fly, params, i, numStates, trajStart, ...
+                trajLen, maxStim);
+        else
+            [W(idx:idx+numSamp-1,:) ess_trans] = ...
+                GetSimpleESSApprox(fly, params, i, numStates, trajStart, ...
+                trajLen, maxStim, numParticles);
+        end
         for i=1:maxStim
             for j=1:maxStim
-                exp_num_trans{i,j} = exp_num_trans{i,j} + xi_summed{i,j};
+                exp_num_trans{i,j} = exp_num_trans{i,j} + ess_trans{i,j};
             end
         end
         exp_num_visits1 = exp_num_visits1 + W(idx,:);
+        
         idx = idx + numSamp;
     end
     

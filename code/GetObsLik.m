@@ -1,5 +1,5 @@
 %% Function to compute observation probabilities for each state and time step
-function obslik = GetObsLik(params, VT, VS, VR, PO);
+function obslik = GetObsLik(params, VT, VS, VR, PO)
 
 K = length(params.VT.mu);
 T = length(VT);
