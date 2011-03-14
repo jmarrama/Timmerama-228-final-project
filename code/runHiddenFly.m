@@ -127,7 +127,11 @@ for iter=1:numEMIters
         params.pi = normaliseC(exp_num_visits1);
         for i=1:maxStim
             for j=1:maxStim
-                params.stimRT{i,j} = mk_stochastic(exp_num_trans{i,j});
+                if any(sum(exp_num_trans{i,j}, 2) == 0)
+                    params.stimRT{i,j} = ones(numStates) ./ numStates;
+                else
+                    params.stimRT{i,j} = mk_stochastic(exp_num_trans{i,j});
+                end
             end
         end
     end
@@ -166,10 +170,10 @@ f1s = zeros(1,length(llcuts));
 for i=1:length(llcuts)
     f1s(i) = EvaluateCutoff(valAvgLL, mutantAvgLL, llcuts(i));
 end
-plot(llcuts,f1s);
-title('F1 as a function of Average Log Likelihood Cut-offs');
-xlabel('Avg LL Cut-off');
-ylabel('F1 score');
+% plot(llcuts,f1s);
+% title('F1 as a function of Average Log Likelihood Cut-offs');
+% xlabel('Avg LL Cut-off');
+% ylabel('F1 score');
 
 llcut = llcuts(f1s == max(f1s));
 
