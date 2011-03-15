@@ -176,7 +176,7 @@ testMutantAvgLL = GetAvgLLs(flyMutant, params, mutantTestIdx, trajStart);
 [f1 precision recall] = EvaluateCutoff(testWildAvgLL, testMutantAvgLL, llcut);
 
 
-evaluation(maxStim,:) = [f1 precision recal];
+evaluation(maxStim,:) = [f1 precision recall];
 end
 
 
