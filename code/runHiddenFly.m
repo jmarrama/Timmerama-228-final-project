@@ -117,7 +117,7 @@ for iter=1:numEMIters
     for ii=1:length(sampleIdx)
         if mod(ii,1000)==0
             disp(['Trajectory ' num2str(ii) ' of ' ...
-                num2str(length(trainIdx)) '...']);
+                num2str(length(sampleIdx)) '...']);
         end
         i = sampleIdx(ii);
         trajLen = length(fly.indices{i});
@@ -151,13 +151,13 @@ for iter=1:numEMIters
         disp(['Updating parameters of hidden state ' num2str(k) ...
             ' of ' num2str(numStates)]);
         [params.VT.mu(k) params.VT.sigma(k)] = ...
-            FitGaussianParameters(Xvt', W(:,k));
+            FitGaussianParameters(Xvt, W(:,k));
         [params.VS.mu(k) params.VS.sigma(k)] = ...
-            FitGaussianParameters(Xvs', W(:,k));
+            FitGaussianParameters(Xvs, W(:,k));
         [params.VR.mu(k) params.VR.sigma(k)] = ...
-            FitGaussianParameters(Xvr', W(:,k));
+            FitGaussianParameters(Xvr, W(:,k));
         [params.PO.mu(k) params.PO.sigma(k)] = ...
-            FitGaussianParameters(Xpo', W(:,k));
+            FitGaussianParameters(Xpo, W(:,k));
         params.pi = normaliseC(exp_num_visits1);
         for i=1:maxStim
             for j=1:maxStim
