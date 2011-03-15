@@ -15,6 +15,10 @@ numEMIters = 1;
 exact = 0;
 % number of particles for approximate inference (must be set if exact=0)
 numParticles = 1000;
+% whether to use entire training data or random subsets each time
+randSubset = 0;
+% number of trajectories to sample during EM if randSubset==1
+numSample = 2000;
 
 % first prototype with control, decrement
 if expType==0
@@ -83,12 +87,6 @@ params.pi = params.pi ./ sum(params.pi);
 loglik = zeros(numEMIters,1);
 for iter=1:numEMIters
     disp(['Iteration ' num2str(iter) ' of ' num2str(numEMIters) '...']);
-    W = zeros(numExamples, numStates);
-    Xvt = zeros(numExamples, 1);
-    Xvs = zeros(numExamples, 1);
-    Xvr = zeros(numExamples, 1);
-    Xpo = zeros(numExamples, 1);
-    idx = 1;
     
     disp('E-Step...');
     exp_num_trans = cell(maxStim, maxStim);
@@ -98,12 +96,30 @@ for iter=1:numEMIters
         end
     end
     exp_num_visits1 = zeros(1, numStates);
-    for ii=1:length(trainIdx)
+
+    if randSubset
+        sampleIdx = randsample(trainIdx, numSample);
+        numExamples = 0;
+        for ii=1:length(sampleIdx)
+            i = sampleIdx(ii);
+            numExamples = numExamples + length(fly.indices{i})-trajStart + 1;
+        end
+    else
+        sampleIdx = trainIdx;
+    end
+
+    W = zeros(numExamples, numStates);
+    Xvt = zeros(numExamples, 1);
+    Xvs = zeros(numExamples, 1);
+    Xvr = zeros(numExamples, 1);
+    Xpo = zeros(numExamples, 1);
+    idx = 1;
+    for ii=1:length(sampleIdx)
         if mod(ii,1000)==0
             disp(['Trajectory ' num2str(ii) ' of ' ...
                 num2str(length(trainIdx)) '...']);
         end
-        i = trainIdx(ii);
+        i = sampleIdx(ii);
         trajLen = length(fly.indices{i});
         numSamp = length(fly.indices{i}) - trajStart + 1;
         Xvt(idx:idx+numSamp-1) = fly.VT(fly.indices{i}(trajStart:end));
@@ -229,7 +245,7 @@ else
     disp('How did it get this far!');
 end
 savefile = [savefile 'EM' num2str(numEMIters) 'iterExact' num2str(exact) ...
-    'States' num2str(numStates) '.mat'];
+    'States' num2str(numStates) 'subset' num2str(randSubset) '.mat'];
 
 save(savefile, 'f1', 'precision', 'recall', 'loglik', 'numStates', ...
     'params', 'trainIdx', 'valIdx', 'testIdx', 'mutantTrainIdx', ...
