@@ -50,6 +50,9 @@ flyMutant = rmfield(flyMutant, {'tubes', 'day_times', 'pos_x', 'pos_y'});
 disp('Splitting into training, validation, and test data...');
 [trainIdx, valIdx, testIdx] = splitData(fly);
 
+evaluation = zeros(20,3);
+for maxStim=20:-1:1
+
 % change data so that it is in accordance with our model assumptions:
 disp('Changing data according to our model assumptions...');
 numFlies = length(fly.indices);
@@ -69,9 +72,8 @@ for i=1:2
     tmpVec(tmpVec > maxStim) = 0;
     flyMutant.stim_RT(:,i) = tmpVec;
 end
-
-evaluation = zeros(20,3);
-for maxStim=1:20
+    
+    
 % Fit MLE Linear Gaussian Parameters
 disp('Learning the Parameters...');
 numExamples = 0;
