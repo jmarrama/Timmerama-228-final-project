@@ -218,6 +218,21 @@ testMutantAvgLL = GetHiddenAvgLLs(flyMutant, params, mutantTestIdx, trajStart);
 [f1 precision recall] = EvaluateCutoff(testWildAvgLL, testMutantAvgLL, llcut);
 
 
+savefile = '../data/';
+if expType==0
+    savefile = [savefile 'dark'];
+elseif expType==1
+    savefile = [savefile 'dec'];
+elseif expType==2
+    savefile = [savefile 'inc'];
+else
+    disp('How did it get this far!');
+end
+savefile = [savefile 'EM' num2str(numEMIters) 'iterExact' num2str(exact) ...
+    'States' num2str(numStates) '.mat'];
 
+save(savefile, 'f1', 'precision', 'recall', 'loglik', 'numStates', ...
+    'params', 'trainIdx', 'valIdx', 'testIdx', 'mutantTrainIdx', ...
+    'mutantValIdx', 'mutantTestIdx');
 
 
