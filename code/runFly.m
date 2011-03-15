@@ -60,8 +60,6 @@ for i=1:2
     fly.stim_RT(:,i) = tmpVec;
 end
 
-evaluation = zeros(20,3);
-for maxStim=1:20
 % change data so that it is in accordance with our model assumptions:
 disp('Changing L2 data according to our model assumptions...');
 numMutantFlies = length(flyMutant.indices);
@@ -72,6 +70,8 @@ for i=1:2
     flyMutant.stim_RT(:,i) = tmpVec;
 end
 
+evaluation = zeros(20,3);
+for maxStim=1:20
 % Fit MLE Linear Gaussian Parameters
 disp('Learning the Parameters...');
 numExamples = 0;
