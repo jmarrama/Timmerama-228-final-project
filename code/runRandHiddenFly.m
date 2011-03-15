@@ -1,4 +1,4 @@
-%% runHiddenFly.m Runs the Whole Thang
+%% runRandHiddenFly.m Runs the Whole Thang - EM step on random subset
 
 % 0 = dark
 % 1 = dec
@@ -10,11 +10,13 @@ numStates = 10;
 maxStim = 12;
 % where to start on each trajectory (first few measurements are bad)
 trajStart = 7;
-numEMIters = 1;
-% exact (viterbi/fwd-bwd) or approximate (particle filtering) inference
+numEMIters = 10;
+% exact (viterbi/fwd-bkwd) or approximate (particle filtering) inference
 exact = 0;
 % number of particles for approximate inference (must be set if exact=0)
 numParticles = 1000;
+% number of trajectories to sample during EM
+numSample=2000;
 
 % first prototype with control, decrement
 if expType==0
@@ -58,11 +60,6 @@ end
 
 % Fit MLE Linear Gaussian Parameters
 disp('Performing EM to Learn Parameters');
-numExamples = 0;
-for ii=1:length(trainIdx)
-    i = trainIdx(ii);
-   numExamples = numExamples + length(fly.indices{i}) - trajStart + 1; 
-end
 params.VT.mu = rand(numStates,1)-0.5;
 params.VS.mu = rand(numStates,1)-0.5;
 params.VR.mu = rand(numStates,1)-0.5;
@@ -80,15 +77,8 @@ for i=1:maxStim
 end
 params.pi = rand(1,numStates);
 params.pi = params.pi ./ sum(params.pi);
-loglik = zeros(numEMIters,1);
 for iter=1:numEMIters
     disp(['Iteration ' num2str(iter) ' of ' num2str(numEMIters) '...']);
-    W = zeros(numExamples, numStates);
-    Xvt = zeros(numExamples, 1);
-    Xvs = zeros(numExamples, 1);
-    Xvr = zeros(numExamples, 1);
-    Xpo = zeros(numExamples, 1);
-    idx = 1;
     
     disp('E-Step...');
     exp_num_trans = cell(maxStim, maxStim);
@@ -98,12 +88,24 @@ for iter=1:numEMIters
         end
     end
     exp_num_visits1 = zeros(1, numStates);
-    for ii=1:length(trainIdx)
+    sampleIdx = randsample(trainIdx, numSample);
+    numExamples = 0;
+    for ii=1:length(sampleIdx)
+        i = sampleIdx(ii);
+        numExamples = numExamples + length(fly.indices{i}) - trajStart + 1; 
+    end
+    W = zeros(numExamples, numStates);
+    Xvt = zeros(numExamples, 1);
+    Xvs = zeros(numExamples, 1);
+    Xvr = zeros(numExamples, 1);
+    Xpo = zeros(numExamples, 1);
+    idx = 1;
+    for ii=1:length(sampleIdx)
         if mod(ii,1000)==0
             disp(['Trajectory ' num2str(ii) ' of ' ...
-                num2str(length(trainIdx)) '...']);
+                num2str(length(sampleIdx)) '...']);
         end
-        i = trainIdx(ii);
+        i = sampleIdx(ii);
         trajLen = length(fly.indices{i});
         numSamp = length(fly.indices{i}) - trajStart + 1;
         Xvt(idx:idx+numSamp-1) = fly.VT(fly.indices{i}(trajStart:end));
@@ -111,10 +113,9 @@ for iter=1:numEMIters
         Xvr(idx:idx+numSamp-1) = fly.VR(fly.indices{i}(trajStart:end));
         Xpo(idx:idx+numSamp-1) = fly.pos_o(fly.indices{i}(trajStart:end));
         if exact
-            [W(idx:idx+numSamp-1,:) ess_trans, ll] = ...
+            [W(idx:idx+numSamp-1,:) ess_trans] = ...
                 GetSimpleESS(fly, params, i, numStates, trajStart, ...
                 trajLen, maxStim);
-            loglik(iter) = loglik(iter) + ll;
         else
             [W(idx:idx+numSamp-1,:) ess_trans] = ...
                 GetSimpleESSApprox(fly, params, i, numStates, trajStart, ...
@@ -135,13 +136,13 @@ for iter=1:numEMIters
         disp(['Updating parameters of hidden state ' num2str(k) ...
             ' of ' num2str(numStates)]);
         [params.VT.mu(k) params.VT.sigma(k)] = ...
-            FitGaussianParameters(Xvt', W(:,k));
+            FitGaussianParameters(Xvt, W(:,k));
         [params.VS.mu(k) params.VS.sigma(k)] = ...
-            FitGaussianParameters(Xvs', W(:,k));
+            FitGaussianParameters(Xvs, W(:,k));
         [params.VR.mu(k) params.VR.sigma(k)] = ...
-            FitGaussianParameters(Xvr', W(:,k));
+            FitGaussianParameters(Xvr, W(:,k));
         [params.PO.mu(k) params.PO.sigma(k)] = ...
-            FitGaussianParameters(Xpo', W(:,k));
+            FitGaussianParameters(Xpo, W(:,k));
         params.pi = normaliseC(exp_num_visits1);
         for i=1:maxStim
             for j=1:maxStim

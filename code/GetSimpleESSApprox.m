@@ -72,8 +72,18 @@ end
 for t=1:T-1
     i = stim_RT(t+1,1);
     j = stim_RT(t+1,2);
-    for m=1:M
-        ess_trans{i,j}(X(m,t),X(m,t+1)) = ...
-            ess_trans{i,j}(X(m,t),X(m,t+1)) + W(m);
+    if K^2 < M
+        for k1=1:K
+            k1Idx = find(X(:,t)==k1);
+            for k2=1:K
+                ess_trans{i,j}(k1,k2) = ...
+                    ess_trans{i,j}(k1,k2) + sum(W(k1Idx(X(k1Idx,t+1)==k2)));
+            end
+        end
+    else
+        for m=1:M
+            ess_trans{i,j}(X(m,t),X(m,t+1)) = ...
+                ess_trans{i,j}(X(m,t),X(m,t+1)) + W(m);
+        end
     end
 end
