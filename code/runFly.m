@@ -181,4 +181,5 @@ testMutantAvgLL = GetAvgLLs(flyMutant, params, mutantTestIdx, trajStart);
 evaluation(maxStim,:) = [f1 precision recall];
 end
 
+save(['../data/exp' num2str(expType) 'eval.mat'], 'evaluation');
 
