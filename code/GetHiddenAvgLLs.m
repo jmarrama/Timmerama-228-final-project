@@ -30,7 +30,9 @@ for ii=1:length(idx)
 %     path = zeros(1,T);
     
     t=1;
-    [delta(t,:) n] = normaliseC(params.pi .* obslik(t,:));
+    [delta(t,:) n] = normalise(params.pi .* obslik(t,:));
+%     [delta(t,:) n] = normaliseC(params.pi .* obslik(t,:));
+    
     scale(t) = 1/n;
     
     for t=2:T
@@ -41,7 +43,8 @@ for ii=1:length(idx)
                 max(delta(t-1,:) .* params.stimRT{j,l}(:,k)');
             delta(t,k) = delta(t,k) * obslik(t,k);
         end
-        [delta(t,:) n] = normaliseC(delta(t,:));
+        [delta(t,:) n] = normalise(delta(t,:));
+%         [delta(t,:) n] = normaliseC(delta(t,:));
         scale(t) = 1/n;
     end
     
@@ -50,6 +53,6 @@ for ii=1:length(idx)
 %         path(t) = psi(t+1,path(t+1));
 %     end
     
-    avgLL(ii) = -mean(log(scale));
+    avgLL(ii) = mean(log(scale));
     
 end

@@ -213,26 +213,33 @@ end
 disp('Splitting L2 into training, validation, and test data...');
 [mutantTrainIdx, mutantValIdx, mutantTestIdx] = splitData(flyMutant);
 
+
 mutantAvgLL = GetHiddenAvgLLs(flyMutant, params, mutantValIdx, trajStart);
 
-llcuts = -20:0.1:10;
+llcuts = -900:0.1:100;
 f1s = zeros(1,length(llcuts));
+Ps = zeros(1,length(llcuts));
+Rs = zeros(1,length(llcuts));
 for i=1:length(llcuts)
-    f1s(i) = EvaluateCutoff(valAvgLL, mutantAvgLL, llcuts(i));
+    [f1s(i) Ps(i) Rs(i)] = EvaluateCutoff(valAvgLL, mutantAvgLL, llcuts(i));
 end
 % plot(llcuts,f1s);
 % title('F1 as a function of Average Log Likelihood Cut-offs');
 % xlabel('Avg LL Cut-off');
 % ylabel('F1 score');
 
-llcut = llcuts(f1s == max(f1s));
+llcut = mean(llcuts(f1s == max(f1s)))
+
 
 %% Finally, testing!!
 disp('Testing the Model');
 testWildAvgLL = GetHiddenAvgLLs(fly, params, testIdx, trajStart);
 testMutantAvgLL = GetHiddenAvgLLs(flyMutant, params, mutantTestIdx, trajStart);
-[f1 precision recall] = EvaluateCutoff(testWildAvgLL, testMutantAvgLL, llcut);
+[f1 precision recall] = EvaluateCutoff(testWildAvgLL, testMutantAvgLL, llcut)
 
+
+
+%% saving stuff
 
 savefile = '../data/';
 if expType==0
