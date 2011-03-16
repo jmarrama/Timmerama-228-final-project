@@ -50,6 +50,6 @@ for ii=1:length(idx)
 %         path(t) = psi(t+1,path(t+1));
 %     end
     
-    topLL(ii) = max(delta(T,:));
+    topLL(ii) = max(delta(T,:))/T;
     
 end

@@ -52,7 +52,7 @@ end
 % xlabel('Avg LL Cut-off');
 % ylabel('F1 score');
 
-llcut = mean(llcuts(f1s == max(f1s)));
+llcut = mean(llcuts(f1s == max(f1s)))
 
 %% Finally, testing!!
 disp('Testing the Model');
