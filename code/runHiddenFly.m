@@ -251,4 +251,7 @@ save(savefile, 'f1', 'precision', 'recall', 'loglik', 'numStates', ...
     'params', 'trainIdx', 'valIdx', 'testIdx', 'mutantTrainIdx', ...
     'mutantValIdx', 'mutantTestIdx');
 
+%test with topLogLikelihood - may help? 
+testWithTopLL;
+
 
