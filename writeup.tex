@@ -5,7 +5,7 @@
 %\documentstyle[nips10submit_09,times,art10]{article} % For LaTeX 2.09
 
 
-\title{Modeling Fly Trajectories to Automatically Detect Mutations}
+\title{Modeling the Trajectories of \textit{Drosophila melanogaster} to Automatically Detect Mutations}
 
 
 \author{
@@ -27,31 +27,15 @@ Stanford University \\
 
 \begin{document}
 
-
 \maketitle
 
-%is an abstract necessary?
-%\begin{abstract}
-%\end{abstract}
-
-
-
 \section{Introduction}
-%a bit on the problem at hand... not too long
-
-In biological experiments involving flies, making sure all the flies that are assumed to be normal actually are healthy wildtype flies is of the utmost importance. There have been previous studies on normal and mutated flies that suggest there is a way to automatically classify flies as normal or not given measurements of their movements. These studies have produced a great deal of observational data of fly movements as well. In our project, we use this data to develop a model that performs reasonably well on automatically classifying flies as healthy or mutated.
-
+In biological experiments involving flies, verifying that wild-type flies are actually wild-type is of the utmost importance. Previous studies on normal and mutated flies suggest that there are observable differences in the behavior of normal and mutated flies, which could be exploited to make a classifier that distinguishes between the two. It is the goal of our project to make a reliable classifier, using data from these previous studies, that will perform reasonably well on classifying flies as wild-type or not. To do this, we first model wild-type fly behavior under different types of stimuli using multiple different temporal DBNs. In order to then classify flies, we learn an optimal likelihood value and classify all flies above and below it as wild-type or mutated, respectively.
 
 \section{Related Work}
-%what the fuck? are you serious? i've certainly read a fuckload about classifying flies, give me a goddamn break daphne
-%the project guidelines says we have to put this in.....
-
+The data used in this project is from research done by Alexander Katsov and Thomas R. Clandinin in their paper on motion of \textit{Drosophila melanogaster}.
 
 \section{Our models}
-%uh...... i guess we explain our models here? The guidelines say to include a section about 'our implementation', so i guess this is it. 
-
-%Question: different subsection for different models and then present their performances in 'results', or should we just go through chronologically what we tried and how we iterated through better and better models, presenting the results of each one after its description?
-
 The data in this project is presented as a set of measurements along a number of trajectories of walking flies. We are presented with trajectories for both wild type (normal) flies and for mutated flies. Along these trajectories we are provided a number of measurements, taken at intervals of $1/30$ of a second. These measurements are translational velocity in the forward direction (VT), translational velocity in the sideways direction (VS), rotational velocity (VR), the fly orientation (PO), the fly position along the x-axis (PX), and the fly position along the y-axis (PY). The other important data are the stimulation pulses. There are two types of motion stimuli, corresponding to coherent random dot motion in one direction ($S_1$) and coherent random dot motion in the opposite direction ($S_2$). $S_1$ and $S_2$ are presented in pulses that last either 4 or 5 time steps (where a time step is $1/30$ of a second), and when no stimulus is applied there is a constant noise of random, incoherent dot motion. In addition, these experiments were carried out in 3 different conditions. The three conditions are ?decrement?, in which dark dots are presented over a bright background; ?increment?, in which bright dots are presented over a dark background; and ?dark?, in which noise was replaced by a medium light level and the only stimulus was a dark pulse (complete darkness).
 
 Because this data belongs to a time series, our approach was to design a temporal probabilistic graphical model to model the trajectories of the wild type flies. After training a model on normal flies, we use it to identify wild-type or mutant flies by assigning a log-likelihood to a trajectory (given the model) and assuming that a fly is mutant if the log-likelihood is too low and is wild-type if the log-likelihood is high enough. However, because the trajectories are of different lengths (trajectories last from 20 up to 200 time steps), we choose as our metric the log-likelihood of the trajectory divided by the length of the trajectory (the trajectory?s average log-likelihood). We use the average log-likelihood for identifying wild-type and mutant flies by using a validation data set (of wild-type and mutant flies) to find the best average log-likelihood cut-off. Anything below this cut-off is determined to be mutant and everything above is wild-type. The best average log-likelihood cut-off is the average log-likelihood that maximizes the $F_1$ score,
@@ -69,25 +53,25 @@ Our first model is a baseline model, where each variable at a given time-step $\
 P(X^{\tau} = x^{\tau} | X^{\tau-1}=x^{\tau-1}, S_1, S_2) \sim \mathcal{N}\left( \theta_{x,0} + \theta_{x,1}S_1 + \theta_{x,2}S_2 + \theta_{x,3}x^{\tau-1}, \; \sigma_x \right)
 \end{eqnarray}
 where $X^{\tau}$ is one of the four observed variables at time step $\tau$.
+
+\begin{figure}[t]
+\includegraphics[width=3.5cm]{simple.jpg}\includegraphics[width=3.5cm]{full.jpg}\includegraphics[width=3.5cm]{simple-sincos.jpg}\includegraphics[width=3.5cm]{full-sincos.jpg}\\
+\caption{From left to right: (a) simple connected model, (b) fully-connected model, (c) simple connected model with orientation split into $sin$ and $cos$, and (d) fully-connected model with orientation split into $sin$ and $cos$}
+\end{figure}
+
 However, because the orientation variable (PO) takes on values in $[-\pi,\pi]$, this model can run into problems in the region around $-\pi$ and $\pi$, which are the same orientation but have very different parameterizations. To deal with this, we split up the orientation variable into the cosine and sine of the variable (cO and sO, respectively), and connect cO and sO at each time step to both cO and sO at the next time step (Figure 1).
 
 We also try a fully connected model in which every observed variable at time step $\tau$ (except the stimulus variables) is distributed according to a linear Gaussian, where the mean is a linear combination of all the observed variables at time $\tau-1$ (except the stimuli) and the stimuli variable at time $\tau$ and the variance depends only on the variable (Figure 1). We try this both with the orientation variable left as is and with the orientation variable split into its sine and cosine (Figure 1).
 
-\begin{figure}[t]
-\includegraphics[width=3.5cm]{simple.jpg}\includegraphics[width=3.5cm]{full.jpg}\includegraphics[width=3.5cm]{simple-sincos.jpg}\includegraphics[width=3.5cm]{full-sincos.jpg}\\
-\caption{From left to right: (a) simple connected model, (b) fully-connected model, (c) simple connected model with orientation split into $sin$ and $cos$, and (d) fully-connected model with orientation split into $sin$ and $cos$} % have to figure out where to put this figure...
-\end{figure}
-
-Finally, we have one more model which makes use of hidden variables. In this model, all of the observed variables (i.e. measurements) at each time step depend only on a hidden variable in that time step. This hidden variable $Z$ depends on the hidden variable at the previous time step and the stimuli at the current time step. For each pair $(S_1,S_2)$, we learn a transition matrix from each state $z$ to every other state $z?$. The observed variables at each time step are distributed normally with a mean and variance depending on the hidden state (Figure 2). The motivation for this model is that flies will often initiate a ``move" that will last a number of time steps. This move is probably based on the fly's previous move and the stimuli, so we use the hidden variable as a way of trying to encode a fly's move.
-
-\begin{wrapfigure}{r}{0.5\textwidth}
+\begin{wrapfigure}{l}{0.5\textwidth}
   \begin{center}
     \includegraphics[width=5cm]{hidden.jpg}
   \end{center}
   \caption{Model with a hidden ``move" variable $Z^\tau$}
 \end{wrapfigure}
 
-\normalsize
+Finally, we have one more model which makes use of hidden variables. In this model, all of the observed variables (i.e. measurements) at each time step depend only on a hidden variable in that time step. This hidden variable $Z$ depends on the hidden variable at the previous time step and the stimuli at the current time step. For each pair $(S_1,S_2)$, we learn a transition matrix from each state $z$ to every other state $z?$. The observed variables at each time step are distributed normally with a mean and variance depending on the hidden state (Figure 2). The motivation for this model is that flies will often initiate a ``move" that will last a number of time steps. This move is probably based on the fly's previous move and the stimuli, so we use the hidden variable as a way of trying to encode a fly's move.
+
 We use the Expectation-Maximization Algorithm to learn the parameters for the hidden model. In order to learn the expected sufficient statistics during the E-step, we tried exact and approximate inference techniques. To infer exactly, we use a variant of the forward-backward equations commonly used to learn hidden Markov models (HMMs) to efficiently provide a distribution over all possible hidden state sequences for each trajectory.
 
 Letting $O^{(\tau)}$ represent the set of observations $VT^{(\tau)}, VS^{(\tau)}, VR^{(\tau)}, PO^{(\tau)}$, we have the set of forward-backward equations,
@@ -120,12 +104,24 @@ For approximate inference, we used the technique of particle filtering, sending 
 \end{tabular}
 \end{center}
 \end{table}
-%see my question above
+
 The results from all of our models are shown in Table 1. As we can see, the models all do much better at recall than precision. This is probably because the models do not provide enough separation between the two average log-likelihood distributions. Therefore, maximizing the $F_1$ favors maximizing the recall, which is relatively easy to do by decreasing the cut-off log-likelihood to include more true positives. Figure 3 provides an example of the $F_1$ score as a function of the log-likelihood (graphed on a validation set) for the baseline model with the orientation variable split into its sine and cosine (Simple - split in Table 1). As we can see, the $F_1$ is constant for lower values of the log-likelihood, followed by a small hump and a quick plummeting. This hump represents the very small amount of separation between the two distributions (of wild-type flies and mutant flies) with the model. All of our models have graphs that look very much like this one.
 
 Our first baseline (simple) model, where each variable only depends on the same variable in the previous timestep and the stimuli, performed quite well. With just the minor change of splitting the orientation (PO) variable into its sine and cosine, we achieved the highest $F_1$ on the Increment data set. The minor change also allowed it to perform among the best models on the Decrement data set. 
 
 Our next models are simply extensions of the previous two. They are the baseline models with full connections across time steps. That is, every observed variable in time step $\tau$ depends on every observed variable in time step $\tau-1$ (except the stimuli), and the stimuli in time step $\tau$. These models, as we can see in Table 1, perform almost identically to their singly-connected counterparts. This suggests that the observed variables are probably independent of each other given the stimuli. In fact, when looking at the parameters of the linear Gaussians for fully-connected models, parameters for variables other than the child had coefficients very close to zero.
+
+Our final model is like a hidden Markov model with a hidden ``move" variable that depends on the move variable in the previous time step and the stimulation variables at the current time step. Running EM with exact inference took quite a long time (about 3 hours for a data set), and it lead to unfortunately poor results. In order to calculate the average log-likelihood cut-off, we first computed the likelihood as
+$$
+P(O | \Theta) = \sum_Z P(O | Z, \Theta) P(Z | \Theta)
+$$
+and averaging the log of this quantity over the number of time steps. However, this lead to very poor results, as summarized in the Hidden-LL row of Table 1. The cut-off maximized the $F_1$ by maximizing the recall perfectly - i.e. no false negatives - but allowed the precision to suffer.
+
+In order to deal with this, we tried one other way of computing the average log-likelihoods for a trajectory. Rather than find the overall probability (likelihood) of the trajectory given the model, we find the overall probability of the trajectory given the \textit{best} state sequence, where the best state sequence is the Viterbi sequence. That is, we find the ``pseudo"-likelihood as
+$$
+P(O | \Theta) :\approx \max_Z P(O | Z, \Theta)
+$$
+and this leads to much better results (Hidden - TopLL). It looks like by finding the most probable sequence and then finding the probability of the most probable sequence, we find better separation between the wild-type flies and mutant flies. However, it is still not quite as good as the much simpler models.
 
 As a note, the log-likelihoods of the trajectories are often positive, because the probability density function of a normal distribution (our models use Gaussians and linear Gaussians) can be greater than $1$. This will occur when the variance of the distribution is very small and we are evaluating the pdf at a point close to the mean of the distribution. Thus it is not so much of a surprise that the optimal average log-likelihood cut-offs were  around $2.5$ on the Increment data on models that did not split the orientation variable and $6.6-6.7$ on models that did. Similarly, for the Decrement data, models that split the orientation variable had optimal cut-offs around $1.7$ and models that did not split the variable had optimal cut-offs around $6.2$.
 
@@ -137,10 +133,14 @@ As a note, the log-likelihoods of the trajectories are often positive, because t
 \end{figure}
 
 \section{Discussion}
-%smallden is in the dept. of ball sucking, LOL
-Initially, the most surprising result we found was that the stimulation really had no effect on all of our models. Looking through the parameters learned for all of our models, the ones that control the stimulation’s affect on other variables were often near-zero, or very similar across all values of $S_1$ and $S_2$. For example, in all four of our models without hidden variables (see Figure 1), the parameters $\Theta_{x,1}$ and $\Theta_{x,2}$ in Eqn. 1 are always near-zero. In our models with hidden states, $P(z^{\tau}|z^{\tau-1},s_1^{\tau} = i, s_2^{\tau} = j)$ is almost always near-equal to $P(z^{\tau}|z^{\tau-1},s_1^{\tau} = k, s_2^{\tau} = k)$, for all $i$, $j$, $k$, and $l$. To test this, we simply made a variant of our single-conneciton baseline model with cO and sO and excluded the variables $s_1$ and $s_2$. Lo and behold, the model got almost identical $F_1$, precision, and recall scores. 
+Initially, the most surprising result we found was that the stimulation really had no effect on all of our models. Looking through the parameters learned for all of our models, the ones that control the stimulation’s affect on other variables were often near-zero, or very similar across all values of $S_1$ and $S_2$. For example, in all four of our models without hidden variables (see Figure 1), the parameters $\theta_{x,1}$ and $\theta_{x,2}$ in Eqn. 1 are always near-zero. In our models with hidden states, $P(z^{\tau}|z^{\tau-1},s_1^{\tau} = i, s_2^{\tau} = j)$ is almost always near-equal to $P(z^{\tau}|z^{\tau-1},S_1^{\tau} = k, S_2^{\tau} = k)$, for all $i$, $j$, $k$, and $l$. To test this, we simply made a variant of our single-conneciton baseline model with the orientation variable split into its sine and cosine and excluded the variables $S_1$ and $S_2$. Lo and behold, the model got almost identical $F_1$, precision, and recall scores. 
 
-We believe that this may be more indicative that flies are generally unaffected by the stimuli, rather than that our models fail to account property for the stimuli. Of all the variables that might be affected by a stimuli, the three different components to the fly’s velocity and its orientation seem to be the most likely candidates for changing during or after stimulation. Also, all stimuli only last 4 or 5 timesteps, which corresponds to a sixth of a second or less. This may not be long enough to affect the fly. It would be an interesting continuation of this project to run statistical analysis on the dataset to figure out whether there is any correlation between $S_1$ or $S_2$ and the rest of the variables. 
+We believe that this may be more indicative that flies are generally unaffected by the stimuli, rather than that our models fail to account property for the stimuli. Of all the variables that might be affected by a stimuli, the three different components to the fly’s velocity and its orientation seem to be the most likely candidates for changing during or after stimulation. Also, all stimuli only last 4 or 5 timesteps, which corresponds to a sixth of a second or less. This may not be long enough to affect the fly. It would be an interesting continuation of this project to run statistical analysis on the dataset to figure out whether there is any correlation between $S_1$ or $S_2$ and the rest of the variables.
 
+
+\section{References}
+\small{
+Katsov, Alexander Y. \& Thomas R. Clandinin. (2008) Motion Processing Streams in {\it Drosophila} Are Behaviorally Specialized. {\it Neuron} 59, 322-335, July 31, 2008.
+}
 
 \end{document}
