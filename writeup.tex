@@ -65,9 +65,9 @@ where $tp$ is the number of true positives, $fp$ is the number of false positive
 The data on fly positions (PX and PY) were confounding because they were not calibrated, so our models considers only the velocities, VT, VS, and VR, the orientation, PO, and the stimuli, $S_1$ and $S_2$. The first few measurements on each trajectory are very obviously way off, so we throw out the first 6 time steps of each trajectory. We also need a way to represent the stimuli in our model. Although the stimuli are applied in pulses, there is evidence showing that the effects of the pulses on the flies will last a few time steps after the pulse ends (REF). However, we do not expect the stimulus to affect the fly many time steps after the last pulse, so we parameterize the variables $S_1$ and $S_2$ (corresponding to the two stimulus types) by the amount of time since the beginning of the most recent pulse. The value 1 corresponds to the beginning of a new pulse, and at each time step thereafter will be $2, 3, \ldots$ until reaching a maximum value of $M$ (the fly has limited memory after all). Once we are past M time steps after the pulse, the value of $S_i$ ($i=1,2$) is $0$. This way of encoding the stimulus allows the model to take into account an M-order Markovity of the time series.
 
 Our first model is a baseline model, where each variable at a given time-step $\tau$ is dependent only on the same variable at the time-step $\tau-1$ and the stimuli $S_1, S_2$ at the current time step $\tau$ (Figure 1). The probability distributions are parameterized by linear Gaussians,
-$$
+\begin{eqnarray}
 P(X^{\tau} = x^{\tau} | X^{\tau-1}=x^{\tau-1}, S_1, S_2) \sim \mathcal{N}\left( \theta_{x,0} + \theta_{x,1}S_1 + \theta_{x,2}S_2 + \theta_{x,3}x^{\tau-1}, \; \sigma_x \right)
-$$
+\end{eqnarray}
 where $X^{\tau}$ is one of the four observed variables at time step $\tau$.
 However, because the orientation variable (PO) takes on values in $[-\pi,\pi]$, this model can run into problems in the region around $-\pi$ and $\pi$, which are the same orientation but have very different parameterizations. To deal with this, we split up the orientation variable into the cosine and sine of the variable (cO and sO, respectively), and connect cO and sO at each time step to both cO and sO at the next time step (Figure 1).
 
@@ -95,19 +95,22 @@ We use the Expectation-Maximization Algorithm to learn the parameters for the hi
 \begin{table}[t]
 \caption{$F_1$ scores with different models}
 \begin{center}
-\begin{tabular}{l|c|c|}
- & Increment & Decrement \\ \hline
- Simple & $0.7143$ & $0.7003$ \\
- Simple - split & $0.7360$ & $ 0.7193$ \\
- Full & $0.7156$ & $0.7194$ \\
- Full - split & $0.7356$ & $0.7194$ \\
- Hidden - LL & $0.6930$ & $0.6969$ \\
- Hidden - TopLL & $0.7270$ & $0.7119$
+\begin{tabular}{l|ccc|ccc}
+ & & Increment & & & Decrement & \\ \hline
+  & $F_1$ & Precision & Recall & $F_1$ & Precision & Recall \\ \hline
+ Simple & $0.7143$ & $0.5926$ & $0.8989$ & $0.7003$ & $0.5633$ & $0.9253$ \\
+ Simple - split & $0.7360$ & $0.6393$ & $0.8671$ & $ 0.7193$ & $0.6094$ & $0.8776$ \\
+ Full & $0.7156$ & $0.5944$ & $0.8988$ & $0.7194$ & $0.5642$ & $0.9254$ \\
+ Full - split & $0.7356$ & $0.6431$ & $0.8618$ & $0.7194$ & $0.6089$ & $0.8787$ \\
+ Hidden - LL & $0.6930$ & $0.5300$ & $1.0000$ & $0.6969$ & $0.5348$ & $1.0000$ \\
+ Hidden - TopLL & $0.7270$ & $0.6210$ & $0.8760$ & $0.7119$ & $0.5936$ & $0.8892$
 \end{tabular}
 \end{center}
 \end{table}
 %see my question above
-Our first baseline model where each variable only depends on the same variable in the previous timestep and the stimuli, as seen in Figure 1, performed quite well. On the `increment’ dataset, this model performed the best, with an F1 score of $0.71$, a precision of $0.59$, and a recall of $0.89$. On the ‘decrement’ dataset, this model, like all of the other models we tried, got a similar but slightly worse set of scores. Our baseline model got an F1 score $0.7$, a precision of $0.56$, and a recall of $0.92$. For the increment and decrement sets, our baseline model used values $2.5$ and $1.7$ for the log-likelihood cutoff, respectively. Curiously, log-likelihoods of trajectories can in fact be positive (and very often are, as evidenced by the cutoff values found), because we evaluate the probability at each timestep using the `normpdf’ function in MATLAB, which evaluates the normal-distribution function at a certain value, and when the standard deviation is small enough, the normal-distribution function often times goes over $1$.
+The results from all of our models are shown in Table 1. Our first baseline (simple) model, where each variable only depends on the same variable in the previous timestep and the stimuli, performed quite well. With just the minor change of splitting the orientation (PO) variable into its sine and cosine, we achieved the highest $F_1$ on the Increment data set. The minor change also allowed it to perform among the best models on the Decrement data set. 
+
+On the `increment' dataset, this model performed the best, with an F1 score of $0.71$, a precision of $0.59$, and a recall of $0.89$. On the `decrement' dataset, this model, like all of the other models we tried, got a similar but slightly worse set of scores. Our baseline model got an $F_1$ score $0.7$, a precision of $0.56$, and a recall of $0.92$. For the increment and decrement sets, our baseline model used values $2.5$ and $1.7$ for the log-likelihood cutoff, respectively. Curiously, log-likelihoods of trajectories can in fact be positive (and very often are, as evidenced by the cutoff values found), because we evaluate the probability at each timestep using the `normpdf’ function in MATLAB, which evaluates the normal-distribution function at a certain value, and when the standard deviation is small enough, the normal-distribution function often times goes over $1$.
 Our second model where we split up PO into sO and sO (as seen in Figure 1) performed better, as expected. On the increment dataset, we got $F_1$, precision, and recall scores of $0.736$, $0.64$, and $0.86$, respectively. For this model, the optimal log-likelihood cutoff value was found to be 6.6. This makes sense, because there is no longer a discontinuity in PO. Flies in trajectories often switch their orientation back and forth across the 180 degree line, and not having a discontinuity there makes it easier to assign higher likelihoods to flies that exhibit this behavior (which should be the case).
 \begin{figure}[t]
   \begin{center}
