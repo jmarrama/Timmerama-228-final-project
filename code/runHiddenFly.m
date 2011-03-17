@@ -82,8 +82,7 @@ for i=1:maxStim
             repmat(sum(params.stimRT{i,j},2),1,numStates);
     end 
 end
-params.pi = rand(1,numStates);
-params.pi = params.pi ./ sum(params.pi);
+params.pi = normaliseC(rand(1,numStates));
 loglik = zeros(numEMIters,1);
 for iter=1:numEMIters
     disp(['Iteration ' num2str(iter) ' of ' num2str(numEMIters) '...']);
