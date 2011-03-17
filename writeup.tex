@@ -95,9 +95,13 @@ Finally, we have one more model which makes use of hidden variables. In this mod
 \end{center}
 \end{table}
 
-
+\normalsize
 We use the Expectation-Maximization Algorithm to learn the parameters for the hidden model. In order to learn the expected sufficient statistics during the E-step, we tried exact and approximate inference techniques. To infer exactly, we use a variant of the forward-backward equations commonly used to learn hidden Markov models (HMMs) to efficiently provide a distribution over all possible hidden state sequences for each trajectory (EQUATIONS ??). For approximate inference, we used the technique of particle filtering, sending about 1000 particles through each trajectory to obtain an approximate distribution over state sequences for the trajectory.
 
+\includegraphics[width=10cm]{simple-sincos-llf1.jpg}\\
+\small{Figure 3: The $F_1$ score as a function of the average log-likelihood cut-off (for the simple model with the orientation variable split into its sine and cosine).}
+
+\normalsize
 \section{Results}
 %see my question above
 Our first baseline model where each variable only depends on the same variable in the previous timestep and the stimuli, as seen in Figure 1, performed quite well. On the `increment’ dataset, this model performed the best, with an F1 score of $0.71$, a precision of $0.59$, and a recall of $0.89$. On the ‘decrement’ dataset, this model, like all of the other models we tried, got a similar but slightly worse set of scores. Our baseline model got an F1 score $0.7$, a precision of $0.56$, and a recall of $0.92$. For the increment and decrement sets, our baseline model used values $2.5$ and $1.7$ for the log-likelihood cutoff, respectively. Curiously, log-likelihoods of trajectories can in fact be positive (and very often are, as evidenced by the cutoff values found), because we evaluate the probability at each timestep using the `normpdf’ function in MATLAB, which evaluates the normal-distribution function at a certain value, and when the standard deviation is small enough, the normal-distribution function often times goes over $1$.
