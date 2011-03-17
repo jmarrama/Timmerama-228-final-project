@@ -80,6 +80,22 @@ Finally, we have one more model which makes use of hidden variables. In this mod
 \includegraphics[width=5cm]{hidden.jpg}\\
 \small{Figure 2: Model with a hidden ``move" variable $Z^\tau$}
 
+\begin{table}[htdp]
+\caption{$F_1$ scores with different models}
+\begin{center}
+\begin{tabular}{l|c|c|}
+ & Increment & Decrement \\ \hline
+ Simple & $0.7143$ & $0.7003$ \\
+ Simple - split & $0.7360$ & $ 0.7193$ \\
+ Full & $0.7156$ & $0.7194$ \\
+ Full - split & $0.7356$ & $0.7194$ \\
+ Hidden - LL & $0.6930$ & $0.6969$ \\
+ Hidden - TopLL & $0.7270$ & $0.7119$
+\end{tabular}
+\end{center}
+\end{table}
+
+
 We use the Expectation-Maximization Algorithm to learn the parameters for the hidden model. In order to learn the expected sufficient statistics during the E-step, we tried exact and approximate inference techniques. To infer exactly, we use a variant of the forward-backward equations commonly used to learn hidden Markov models (HMMs) to efficiently provide a distribution over all possible hidden state sequences for each trajectory (EQUATIONS ??). For approximate inference, we used the technique of particle filtering, sending about 1000 particles through each trajectory to obtain an approximate distribution over state sequences for the trajectory.
 
 \section{Results}
